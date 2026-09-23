@@ -1,36 +1,33 @@
-from fastapi import APIRouter, Query
-from datetime import date
-router=APIRouter(prefix="/leads", tags=["leads"])
+from datetime import date,timedelta
+from fastapi import APIRouter,Depends,Query
+from sqlalchemy import select,or_
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.db import get_db
+from app.models import Lead
+from app.schemas import LeadCreate,LeadOut
 
-DEMO_LEADS=[
- {"id":1,"full_name":"Example CTO","job_title":"CTO","company":"Example AI","location":"India","score":91,"signal_type":"AI_INITIATIVE","intent":"HIGH","post_date":"2026-08-15","post_url":"https://www.linkedin.com/","source":"linkedin_via_search"},
- {"id":2,"full_name":"Example Founder","job_title":"Founder","company":"Cloud Startup","location":"India","score":84,"signal_type":"HIRING","intent":"MEDIUM","post_date":"2026-08-10","post_url":"https://www.linkedin.com/","source":"linkedin_via_search"},
-]
+router=APIRouter(prefix="/leads",tags=["leads"])
 
-@router.get("")
-async def list_leads(q:str|None=None,min_score:int=0,status:str|None=None,signal_type:str|None=None):
-    rows=[x for x in DEMO_LEADS if x["score"]>=min_score]
-    if q: rows=[x for x in rows if q.lower() in (x["full_name"]+" "+x["company"]+" "+x["job_title"]).lower()]
-    if signal_type: rows=[x for x in rows if x["signal_type"]==signal_type]
-    return {"items":rows,"total":len(rows)}
+@router.get("",response_model=list[LeadOut])
+async def list_leads(q:str|None=None,min_score:float=0,signal_type:str|None=None,intent:str|None=None,db:AsyncSession=Depends(get_db)):
+    stmt=select(Lead).where(Lead.score>=min_score).order_by(Lead.score.desc())
+    if q: stmt=stmt.where(or_(Lead.full_name.ilike(f"%{q}%"),Lead.company.ilike(f"%{q}%"),Lead.job_title.ilike(f"%{q}%")))
+    if signal_type: stmt=stmt.where(Lead.signal_type==signal_type)
+    if intent: stmt=stmt.where(Lead.intent==intent)
+    return list((await db.scalars(stmt)).all())
+
+@router.post("",response_model=LeadOut,status_code=201)
+async def create_lead(data:LeadCreate,db:AsyncSession=Depends(get_db)):
+    values=data.model_dump()
+    if values.get("linkedin_url"): values["linkedin_url"]=str(values["linkedin_url"])
+    if values.get("post_url"): values["post_url"]=str(values["post_url"])
+    lead=Lead(**values); db.add(lead); await db.commit(); await db.refresh(lead); return lead
 
 @router.get("/date-range")
 async def date_range(kind:str=Query("previous_month")):
     today=date.today()
     if kind=="current_month":
-        start=today.replace(day=1)
-        if today.month==12: end=date(today.year,12,31)
-        else:
-            from datetime import timedelta
-            end=today.replace(day=28)+timedelta(days=4)
-            end=end.replace(day=1)-timedelta(days=1)
+        start=today.replace(day=1); end=(start.replace(day=28)+timedelta(days=4)).replace(day=1)-timedelta(days=1)
     else:
-        year=today.year if today.month>1 else today.year-1
-        month=today.month-1 if today.month>1 else 12
-        start=date(year,month,1)
-        if month==12: end=date(year,12,31)
-        else:
-            from datetime import timedelta
-            end=date(year,month,28)+timedelta(days=4)
-            end=end.replace(day=1)-timedelta(days=1)
+        end=today.replace(day=1)-timedelta(days=1); start=end.replace(day=1); kind="previous_month"
     return {"type":kind,"start":start.isoformat(),"end":end.isoformat()}
