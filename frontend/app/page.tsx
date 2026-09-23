@@ -33,10 +33,25 @@ const countries = [
 ];
 
 async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  const data = await response.json();
-  if (!response.ok) throw new Error(data?.detail || "Request failed");
-  return data;
+  const response = await fetch(url, { cache: "no-store" });
+  const contentType = response.headers.get("content-type") || "";
+  const raw = await response.text();
+  let data: any = null;
+  if (contentType.includes("application/json")) {
+    try { data = JSON.parse(raw); } catch { /* handled below */ }
+  }
+  if (!response.ok) {
+    const detail = data?.detail || data?.error;
+    throw new Error(detail || ("API request failed (" + response.status + ")"));
+  }
+  if (!data) {
+    throw new Error(
+      contentType.includes("text/html")
+        ? "The API returned an HTML page instead of JSON. Please refresh after the latest deployment."
+        : "The API returned an invalid response."
+    );
+  }
+  return data as T;
 }
 const intentClass = (intent: string) => intent.toLowerCase();
 
@@ -87,8 +102,9 @@ export default function Home() {
       const params = new URLSearchParams({ q: query.trim(), days, limit: "25" });
       if (country) params.set("country", country);
       if (location.trim()) params.set("location", location.trim());
-      const data = await getJson<{ items: Activity[] }>(API + "/activity/linkedin/search?" + params.toString());
+      const data = await getJson<{ items: Activity[]; stored?: number }>(API + "/activity/linkedin/search?" + params.toString());
       setActivities(data.items || []);
+      await loadLeads();
       if ((data.items || []).length === 0) {
         setError("No matching real activity was found for these search filters.");
       }
