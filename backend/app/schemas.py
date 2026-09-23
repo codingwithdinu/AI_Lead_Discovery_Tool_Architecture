@@ -1,6 +1,5 @@
 from datetime import datetime
-from pydantic import BaseModel, ConfigDict, HttpUrl
-
+from pydantic import BaseModel,ConfigDict,HttpUrl
 class LeadCreate(BaseModel):
     full_name:str
     job_title:str|None=None
@@ -14,7 +13,6 @@ class LeadCreate(BaseModel):
     evidence:str|None=None
     source:str="unknown"
     score:float=0
-
 class LeadOut(LeadCreate):
     id:int
     created_at:datetime
