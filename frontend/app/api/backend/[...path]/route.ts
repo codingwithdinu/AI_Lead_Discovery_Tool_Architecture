@@ -48,10 +48,20 @@ async function proxy(request: NextRequest, path: string[]) {
   try {
     const response = await fetch(target, init);
     const responseHeaders = new Headers();
-    const responseContentType = response.headers.get("content-type");
+    const responseContentType = response.headers.get("content-type") || "";
+    if (responseContentType) responseHeaders.set("content-type", responseContentType);
 
-    if (responseContentType) {
-      responseHeaders.set("content-type", responseContentType);
+    if (!response.ok && !responseContentType.includes("application/json")) {
+      const body = await response.text();
+      return NextResponse.json(
+        {
+          detail: "Backend returned a non-JSON error response.",
+          status: response.status,
+          content_type: responseContentType,
+          preview: body.slice(0, 300),
+        },
+        { status: response.status }
+      );
     }
 
     return new NextResponse(response.body, {
