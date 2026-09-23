@@ -18,6 +18,20 @@ type Activity = {
 };
 type Range = { start: string; end: string };
 
+const countries = [
+  ["", "Any country"],
+  ["in", "India"],
+  ["us", "United States"],
+  ["gb", "United Kingdom"],
+  ["ca", "Canada"],
+  ["au", "Australia"],
+  ["de", "Germany"],
+  ["fr", "France"],
+  ["nl", "Netherlands"],
+  ["sg", "Singapore"],
+  ["ae", "United Arab Emirates"],
+];
+
 async function getJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   const data = await response.json();
@@ -31,6 +45,8 @@ export default function Home() {
   const [range, setRange] = useState<Range | null>(null);
   const [query, setQuery] = useState("");
   const [days, setDays] = useState("30");
+  const [country, setCountry] = useState("");
+  const [location, setLocation] = useState("");
   const [signalFilter, setSignalFilter] = useState("");
   const [intentFilter, setIntentFilter] = useState("");
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -69,8 +85,13 @@ export default function Home() {
     try {
       setSearching(true); setError("");
       const params = new URLSearchParams({ q: query.trim(), days, limit: "25" });
+      if (country) params.set("country", country);
+      if (location.trim()) params.set("location", location.trim());
       const data = await getJson<{ items: Activity[] }>(API + "/activity/linkedin/search?" + params.toString());
       setActivities(data.items || []);
+      if ((data.items || []).length === 0) {
+        setError("No matching real activity was found for these search filters.");
+      }
     } catch (err) {
       setActivities([]);
       setError(err instanceof Error ? err.message : "Activity search failed");
@@ -119,11 +140,16 @@ export default function Home() {
           </div>
           <form className="search-form" onSubmit={searchActivity}>
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. AI hiring, cloud migration, funding" />
+            <select value={country} onChange={(event) => setCountry(event.target.value)} aria-label="Search country">
+              {countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+            </select>
+            <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="City / state / region (optional)" aria-label="Location" />
             <select value={days} onChange={(event) => setDays(event.target.value)}>
               <option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
             </select>
             <button type="submit" disabled={searching || !query.trim()}>{searching ? "Searching..." : "Search activity"}</button>
           </form>
+          <p className="search-help">Country controls Google search localization; city/state further focuses the search. It does not guarantee the author's physical location.</p>
           {error && <div className="error-box">{error}</div>}
           {activities.length > 0 && (
             <div className="activity-results">
