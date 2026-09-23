@@ -1,6 +1,6 @@
 from datetime import datetime,timezone,timedelta
 from fastapi import APIRouter,HTTPException,Query,Depends
-from sqlalchemy import select
+from sqlalchemy import or_,select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_db
 from app.models import Lead
@@ -36,7 +36,10 @@ async def search_linkedin_activity(
         activity.intent=intent
         activity.evidence=evidence
 
-        existing=await db.scalar(select(Lead).where(Lead.post_url==str(activity.post_url)))
+        conditions=[Lead.post_url==str(activity.post_url)]
+        if activity.author_url:
+            conditions.append(Lead.linkedin_url==str(activity.author_url))
+        existing=await db.scalar(select(Lead).where(or_(*conditions)))
         if existing:
             continue
 
