@@ -11,7 +11,7 @@ class LinkedInActivity(BaseModel):
     author_title:str|None=None
     company:str|None=None
     post_url:HttpUrl
-    published_at:datetime
+    published_at:datetime|None
     text:str=Field(min_length=1)
     source:str
     source_provider:str
