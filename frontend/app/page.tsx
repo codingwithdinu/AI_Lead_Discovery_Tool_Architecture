@@ -177,7 +177,7 @@ export default function Home() {
                     <p>{activity.author_title || "Role not provided"}{activity.company ? " · " + activity.company : ""}</p>
                     <p className="activity-text">{activity.text}</p>
                     <div className="activity-meta">
-                      <span>{activity.signal_type}</span><span>{new Date(activity.published_at).toLocaleDateString()}</span><span>Source: {activity.source_provider}</span>
+                      <span>{activity.signal_type}</span><span>{activity.published_at ? new Date(activity.published_at).toLocaleDateString() : "Date not provided"}</span><span>Source: {activity.source_provider}</span>
                     </div>
                   </div>
                   <a className="open-link" href={activity.post_url} target="_blank" rel="noreferrer">Open post ↗</a>
