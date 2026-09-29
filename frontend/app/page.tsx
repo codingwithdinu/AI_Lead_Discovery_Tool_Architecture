@@ -86,17 +86,18 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState("");
+  const [leadsError, setLeadsError] = useState("");
 
   const loadLeads = async () => {
     try {
-      setLoading(true); setError("");
+      setLoading(true); setLeadsError("");
       const params = new URLSearchParams();
       if (signalFilter) params.set("signal_type", signalFilter);
       if (intentFilter) params.set("intent", intentFilter);
       const data = await getJson<Lead[]>(API + "/leads?" + params.toString());
       setLeads(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load leads");
+      setLeadsError(err instanceof Error ? err.message : "Unable to load leads");
     } finally { setLoading(false); }
   };
 
@@ -123,6 +124,9 @@ export default function Home() {
       const data = await getJson<{ items: Activity[]; stored?: number }>(API + "/activity/linkedin/search?" + params.toString());
       setActivities(data.items || []);
       setStoredCount(data.stored ?? 0);
+      setError("");
+      // Lead-table refresh is independent from activity discovery. A failure
+      // here must not hide successful search results or show a search error.
       await loadLeads();
       if ((data.items || []).length === 0) {
         setError("No matching real activity was found for these search filters.");
@@ -216,7 +220,8 @@ export default function Home() {
 
         <section id="leads" className="panel">
           <div className="panel-heading compact">
-            <div><p className="eyebrow">LEAD DATABASE</p><h2>Discovered leads</h2>{range && <p>Previous month: {range.start} → {range.end}</p>}</div>
+            <div><p className="eyebrow">LEAD DATABASE</p><h2>Discovered leads</h2>
+          {leadsError && <div className="error-box">{leadsError} (Activity search results remain separate.)</div>}{range && <p>Previous month: {range.start} → {range.end}</p>}</div>
             <div className="filters">
               <select value={intentFilter} onChange={(event) => setIntentFilter(event.target.value)}>
                 <option value="">All intent</option><option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option><option value="NONE">None</option>
