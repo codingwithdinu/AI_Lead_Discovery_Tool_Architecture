@@ -14,5 +14,6 @@ class LinkedInActivityProvider(ABC):
         limit:int=100,
         country:str|None=None,
         location:str|None=None,
+        category:str="all",
     )->list[LinkedInActivity]:
         raise NotImplementedError
