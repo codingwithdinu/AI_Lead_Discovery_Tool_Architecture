@@ -1,9 +1,9 @@
 import re
 
 SIGNAL_KEYWORDS = [
-    ("PROCUREMENT_INTENT", ["procurement", "looking to procure", "procure"]),
-    ("VENDOR_SEARCH", ["looking for a vendor", "looking for vendors", "seeking vendor", "looking for a partner", "implementation partner"]),
-    ("HIRING", ["we're hiring", "we are hiring", "hiring", "open roles", "join our team", "recruiting"]),
+    ("PROCUREMENT_INTENT", ["procurement", "looking to procure", "procure", "need a software solution", "need software", "looking for software", "require software", "software requirement", "need an app", "need a website", "looking for crm", "looking for erp"]),
+    ("VENDOR_SEARCH", ["looking for a vendor", "looking for vendors", "seeking vendor", "looking for a partner", "implementation partner", "looking for an agency", "seeking a software company", "development partner", "it vendor"]),
+    ("HIRING", ["we're hiring", "we are hiring", "hiring", "open roles", "join our team", "recruiting", "job opening", "job opportunity", "software developer", "software engineer", "looking for a developer", "looking for developers", "looking for an engineer"]),
     ("FUNDING", ["raised", "funding", "funded", "series a", "series b", "series c", "investment"]),
     ("PRODUCT_LAUNCH", ["launching", "launched", "new product", "product launch", "now live"]),
     ("AI_INITIATIVE", ["ai initiative", "generative ai", "genai", "artificial intelligence", "machine learning"]),
