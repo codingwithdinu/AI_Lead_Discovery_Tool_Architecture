@@ -107,7 +107,7 @@ class SerpApiLinkedInProvider(LinkedInActivityProvider):
             if published_at and not (start<=published_at<=end):
                 continue
             title=item.get("title") or ""
-            author=item.get("author") or item.get("source") or "Author not identified"
+            author=item.get("author") or "Author not identified"
             snippet=item.get("snippet") or title
             if not snippet.strip():
                 continue
