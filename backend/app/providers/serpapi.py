@@ -1,6 +1,7 @@
 import os
 import re
 import httpx
+import asyncio
 from datetime import datetime,timezone,timedelta
 from email.utils import parsedate_to_datetime
 from app.activity import LinkedInActivity
@@ -91,10 +92,24 @@ class SerpApiLinkedInProvider(LinkedInActivityProvider):
         if location:
             params["location"]=location
 
-        async with httpx.AsyncClient(timeout=35) as client:
-            response=await client.get("https://serpapi.com/search.json",params=params)
-            response.raise_for_status()
-            data=response.json()
+        # SerpApi can occasionally stall or reset connections. Retry transient
+        # transport failures with bounded backoff, without logging the API key.
+        timeout=httpx.Timeout(connect=20.0,read=60.0,write=20.0,pool=20.0)
+        last_error=None
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            for attempt in range(3):
+                try:
+                    response=await client.get("https://serpapi.com/search.json",params=params)
+                    response.raise_for_status()
+                    data=response.json()
+                    break
+                except (httpx.TimeoutException,httpx.NetworkError) as exc:
+                    last_error=exc
+                    if attempt==2:
+                        if isinstance(exc,httpx.TimeoutException):
+                            raise RuntimeError("SerpApi timed out after retries. This may be a temporary provider/network delay; retry the search.") from exc
+                        raise RuntimeError("Connection to SerpApi failed after retries. Check provider availability or Render outbound connectivity.") from exc
+                    await asyncio.sleep(1.5*(attempt+1))
 
         activities=[]
         for item in data.get("organic_results",[]):
