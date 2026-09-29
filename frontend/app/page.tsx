@@ -196,7 +196,7 @@ export default function Home() {
           {storedCount !== null && activities.length > 0 && <div className="search-help">{storedCount} new lead record(s) saved to the database. Existing matching leads are not duplicated.</div>}
           {activities.length > 0 && (
             <div className="activity-results">
-              <div className="results-title">{activities.length} real search result{activities.length === 1 ? "" : "s"} · {category.replaceAll("_", " ")}</div>
+              <div className="results-title">{activities.length} real search result{activities.length === 1 ? "" : "s"} · {category.split("_").join(" ")}</div>
               {activities.map((activity) => (
                 <article className="activity-row" key={activity.activity_id}>
                   <div className="activity-main">
