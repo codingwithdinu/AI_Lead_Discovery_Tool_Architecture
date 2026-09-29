@@ -13,7 +13,7 @@ type Lead = {
 type Activity = {
   activity_id: string; author_name: string; author_url?: string | null;
   author_title?: string | null; company?: string | null; post_url: string;
-  published_at: string; text: string; source: string; source_provider: string;
+  published_at: string | null; text: string; source: string; source_provider: string;
   signal_type: string; intent: string; evidence?: string | null;
 };
 type Range = { start: string; end: string };
@@ -59,7 +59,9 @@ export default function Home() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [range, setRange] = useState<Range | null>(null);
   const [query, setQuery] = useState("");
-  const [days, setDays] = useState("30");
+  const [days, setDays] = useState("15");
+  const [category, setCategory] = useState("all");
+  const [storedCount, setStoredCount] = useState<number | null>(null);
   const [country, setCountry] = useState("");
   const [location, setLocation] = useState("");
   const [signalFilter, setSignalFilter] = useState("");
@@ -99,11 +101,12 @@ export default function Home() {
     if (!query.trim()) return;
     try {
       setSearching(true); setError("");
-      const params = new URLSearchParams({ q: query.trim(), days, limit: "25" });
+      const params = new URLSearchParams({ q: query.trim(), days, limit: "50", category });
       if (country) params.set("country", country);
       if (location.trim()) params.set("location", location.trim());
       const data = await getJson<{ items: Activity[]; stored?: number }>(API + "/activity/linkedin/search?" + params.toString());
       setActivities(data.items || []);
+      setStoredCount(data.stored ?? 0);
       await loadLeads();
       if ((data.items || []).length === 0) {
         setError("No matching real activity was found for these search filters.");
@@ -151,25 +154,33 @@ export default function Home() {
 
         <section id="activity" className="panel search-panel">
           <div className="panel-heading">
-            <div><p className="eyebrow">DISCOVER</p><h2>Search LinkedIn activity</h2><p>Search recent activity through the configured data provider.</p></div>
+            <div><p className="eyebrow">DISCOVER</p><h2>Find LinkedIn Jobs & Software Leads</h2><p>Search public LinkedIn job listings and posts mentioning software or IT requirements.</p></div>
             <span className="provider-badge">REAL DATA ONLY</span>
           </div>
           <form className="search-form" onSubmit={searchActivity}>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="e.g. AI hiring, cloud migration, funding" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Keywords: software developer, CRM, AI automation..." aria-label="Search keywords" />
+            <select value={category} onChange={(event) => setCategory(event.target.value)} aria-label="Search type">
+              <option value="all">All jobs & requirements</option>
+              <option value="job_posts">Job posts / openings</option>
+              <option value="software_requirements">Software / IT requirements</option>
+              <option value="ai_cloud">AI / Cloud needs</option>
+              <option value="vendor_search">Vendor / agency search</option>
+            </select>
             <select value={country} onChange={(event) => setCountry(event.target.value)} aria-label="Search country">
               {countries.map(([code, name]) => <option key={code} value={code}>{name}</option>)}
             </select>
             <input value={location} onChange={(event) => setLocation(event.target.value)} placeholder="City / state / region (optional)" aria-label="Location" />
             <select value={days} onChange={(event) => setDays(event.target.value)}>
-              <option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
+              <option value="7">Last 7 days</option><option value="15">Last 15 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option>
             </select>
             <button type="submit" disabled={searching || !query.trim()}>{searching ? "Searching..." : "Search activity"}</button>
           </form>
-          <p className="search-help">Country controls Google search localization; city/state further focuses the search. It does not guarantee the author's physical location.</p>
+          <p className="search-help">Search uses Google-indexed public LinkedIn results via SerpApi, not direct LinkedIn API access. Country and city guide search localization but do not guarantee the poster's actual location. Results may be incomplete.</p>
           {error && <div className="error-box">{error}</div>}
+          {storedCount !== null && activities.length > 0 && <div className="search-help">{storedCount} new lead record(s) saved to the database. Existing matching leads are not duplicated.</div>}
           {activities.length > 0 && (
             <div className="activity-results">
-              <div className="results-title">{activities.length} activity result{activities.length === 1 ? "" : "s"}</div>
+              <div className="results-title">{activities.length} real search result{activities.length === 1 ? "" : "s"} · {category.replaceAll("_", " ")}</div>
               {activities.map((activity) => (
                 <article className="activity-row" key={activity.activity_id}>
                   <div className="activity-main">
@@ -177,7 +188,7 @@ export default function Home() {
                     <p>{activity.author_title || "Role not provided"}{activity.company ? " · " + activity.company : ""}</p>
                     <p className="activity-text">{activity.text}</p>
                     <div className="activity-meta">
-                      <span>{activity.signal_type}</span><span>{activity.published_at ? new Date(activity.published_at).toLocaleDateString() : "Date not provided"}</span><span>Source: {activity.source_provider}</span>
+                      <span>{activity.signal_type}</span><span>{activity.published_at ? new Date(activity.published_at).toLocaleDateString() : "Date not provided"}</span><span>{activity.metadata?.result_type === "job_post" ? "LinkedIn job listing" : "LinkedIn post"}</span><span>Source: Google / {activity.source_provider}</span>
                     </div>
                   </div>
                   <a className="open-link" href={activity.post_url} target="_blank" rel="noreferrer">Open post ↗</a>
