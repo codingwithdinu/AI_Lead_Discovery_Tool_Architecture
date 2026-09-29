@@ -15,6 +15,7 @@ type Activity = {
   author_title?: string | null; company?: string | null; post_url: string;
   published_at: string | null; text: string; source: string; source_provider: string;
   signal_type: string; intent: string; evidence?: string | null;
+  metadata?: Record<string, string | number | boolean | null>;
 };
 type Range = { start: string; end: string };
 
@@ -30,6 +31,21 @@ const countries = [
   ["nl", "Netherlands"],
   ["sg", "Singapore"],
   ["ae", "United Arab Emirates"],
+  ["br", "Brazil"],
+  ["jp", "Japan"],
+  ["it", "Italy"],
+  ["es", "Spain"],
+  ["ie", "Ireland"],
+  ["ch", "Switzerland"],
+  ["se", "Sweden"],
+  ["nz", "New Zealand"],
+  ["za", "South Africa"],
+  ["pk", "Pakistan"],
+  ["bd", "Bangladesh"],
+  ["sa", "Saudi Arabia"],
+  ["id", "Indonesia"],
+  ["my", "Malaysia"],
+  ["mx", "Mexico"],
 ];
 
 async function getJson<T>(url: string): Promise<T> {
